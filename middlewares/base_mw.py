@@ -5,10 +5,10 @@ import requests
 from src.res_req_schema import get_status_payload
 
 
-def watsonx_base_call(payload):
+def watsonx_base_call(payload, context):
     # r = requests.post('https://example.com', json=json.dumps(payload))
     r = requests.get('http://time.jsontest.com/')
-    return get_status_payload(r)
+    return get_status_payload(r, context)
                  
 
 def common_middleware(query, context, data=None) -> Dict[str, str]:
@@ -23,10 +23,8 @@ def common_middleware(query, context, data=None) -> Dict[str, str]:
         "context": context,
         "data": data,
     }
-    watson_res = watsonx_base_call(payload)
+    watson_res = watsonx_base_call(payload, context)
     return watson_res
 
-    
-print(common_middleware('test', ['test1', 'test2']))
     
 
