@@ -3,9 +3,12 @@ from streamlit_geolocation import streamlit_geolocation
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
+import numpy as np
+from noaa_sdk import NOAA
 
 # Set page configuration
 st.set_page_config(layout="wide")
+n = NOAA()
 
 # Function to get location name from coordinates
 def get_location_name(latitude, longitude):
@@ -37,10 +40,16 @@ with col1:
         user_lat, user_lon = 29.6516, -82.3248  # Default to Gainesville, Florida
         location_name = "Gainesville, Florida"
         st.info(f"Using default location: {location_name}")
+
+)
     
     data = pd.DataFrame({
         'latitude': [user_lat],
-        'longitude': [user_lon]
+        'longitude': [user_lon],
+        "col1": np.random.randn(1000) / 50 + 37.76,
+        "col2": np.random.randn(1000) / 50 + -122.4,
+        "col3": np.random.randn(1000) * 100,
+        "col4": np.random.rand(1000, 4).tolist(),
     })
     
     st.map(data, zoom=14)
@@ -87,7 +96,6 @@ with col2:
 
     # Chat input at the bottom
     prompt = st.chat_input("What would you like to know?", key='content')
-    print(f"{prompt=}")
 
     if prompt:
         # Add user message to chat history
