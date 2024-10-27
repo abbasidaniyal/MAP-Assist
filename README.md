@@ -1,6 +1,17 @@
-# Aid Me
+# MapAssist
+A watsonx AI based web application to help people in distress during a disaster.
 
-## Flow
+## Installation
+1. Have a Python3 installation ready
+	- Refer [this doc](https://www.python.org/downloads/) to install 
+2. Create a python virtual environment with pip. Example, `python3 -m venv mapassist`
+3. Activate virtual environment, Example, `source <path to virtual env bin>`
+4. Change to the project root and install requirements, `pip install -r requirements.txt`
+5. Run the app using `streamlit run app.py`
+6. Go to the following address in the browser, http://127.0.0.1:8501
+
+
+## Application Flow
 
 1. Ask for user location (browser permission) => User lat long
 2. Based on their location, we check if there is an ongoing disaster (in our db) and if they need  immediate care => Ask and redirect to 911 for critical issues
