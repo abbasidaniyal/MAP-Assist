@@ -138,10 +138,28 @@ with st.container(height = 1024, border=False):
             address_link = f"https://www.google.com/maps/dir/{user_lat},{user_lon}/{marker['Latitude']},{marker['Longitude']}/"
             # address_link = f"http://maps.google.com/maps?z=14&t=m&q=loc:{marker['Latitude']}+{marker['Longitude']}"
 
-            if marker['Gender'] == 'Female':
+            if marker['Type'] == "Police":
+                marker_icon = folium.CustomIcon(
+                icon_image='assets\police-station.png',  # Path to your PNG icon
+                icon_size=(30, 30)) # Adjust size as needed
+                
+            elif marker['Type'] == "Medical":
+                marker_icon = folium.CustomIcon(
+                icon_image='assets\healthcare.png',  # Path to your PNG icon
+                icon_size=(30, 30)) # Adjust size as needed
+                
+
+            elif marker['Type'] == "Supplies":
+                marker_icon = folium.CustomIcon(
+                icon_image='assets\grocery.png',  # Path to your PNG icon
+                icon_size=(30, 30))  # Adjust size as needed
+                
+            elif marker['Gender'] == 'Female':
                 marker_icon = folium.Icon('pink')
-            else:
+            elif marker['Gender'] == 'Male':
                 marker_icon = folium.Icon('blue')
+            else:
+                marker_icon = folium.Icon('pink')
 
             folium.Marker(
                 location=[float(marker["Latitude"]), float(marker["Longitude"])], popup=folium.Popup(f"""
