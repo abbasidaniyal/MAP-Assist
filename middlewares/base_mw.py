@@ -16,7 +16,7 @@ def watsonx_base_call(payload, context):
 
     response_text = get_education_content_help(payload)
     return response_text
-                 
+
 
 def common_middleware(context, data=None) -> Dict[str, str]:
     """
@@ -32,9 +32,12 @@ def common_middleware(context, data=None) -> Dict[str, str]:
     watson_res = watsonx_base_call(payload, context)
     return watson_res
 
-    
 
-def filter_nearby_people(target_location: tuple, max_distance: float, helps_filters: Optional[List[str]] = None) -> pd.DataFrame:
+def filter_nearby_people(
+    target_location: tuple,
+    max_distance: float,
+    helps_filters: Optional[List[str]] = None,
+) -> pd.DataFrame:
     """
     Filters the dataframe to find people within a specified distance from a given location
     and optionally filters based on 'Helps' criteria.
@@ -53,24 +56,22 @@ def filter_nearby_people(target_location: tuple, max_distance: float, helps_filt
 
     filtered_data = []
 
-    
     # Iterate through each row to calculate distance and filter
     for _, row in data.iterrows():
-        person_location = (row['Latitude'], row['Longitude'])
+        person_location = (row["Latitude"], row["Longitude"])
         distance = geodesic(target_location, person_location).miles
-        
+
         # Check if within max distance
         if distance <= max_distance:
             # Check if helps filter applies, if provided
             if helps_filters:
-                helps_list = row['Helps'].split(';')
+                helps_list = row["Helps"].split(";")
                 if any(help_filter in helps_list for help_filter in helps_filters):
-                    filtered_data.append(row)
+                    filtered_data.append((distance, row))
             else:
-                filtered_data.append(row)
-    
+                filtered_data.append((distance, row))
+
+    sorted_list = sorted(filtered_data, key=lambda x: x[0])
+
     # Convert list of rows back to DataFrame
-    return pd.DataFrame(filtered_data)
-
-
-
+    return pd.DataFrame([row for _, row in sorted_list])

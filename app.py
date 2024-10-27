@@ -1,3 +1,9 @@
+from src.agents.watsonx_utils import (
+    HELP_IS_BUCKET_MAPPING,
+    classify_user_message,
+    is_user_input_enough_to_classify,
+    score_user_urgency,
+)
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 import pandas as pd
@@ -24,6 +30,7 @@ with col1:
     st.image("assets/MAPAssist (3).png", width=200)
 
 
+
 # Function to get location name from coordinates
 def get_location_name(latitude, longitude):
     geolocator = Nominatim(user_agent="my_streamlit_app")
@@ -33,7 +40,17 @@ def get_location_name(latitude, longitude):
     except GeocoderTimedOut:
         return "Location lookup timed out"
 
+
 # Initialize session state for chat messages
+if "contents" not in st.session_state:
+    st.session_state["contents"] = []
+
+if "help_filters" not in st.session_state:
+    st.session_state["help_filters"] = []
+
+if "refetch_volunteers" not in st.session_state:
+    st.session_state["refetch_volunteers"] = True
+
 if 'contents' not in st.session_state:
     st.session_state['contents'] = [
         {
@@ -42,19 +59,22 @@ if 'contents' not in st.session_state:
         }
     ]
 
-if 'help_filters' not in st.session_state:
-    st.session_state['help_filters'] = []
+if "volunteers" not in st.session_state:
+    st.session_state["volunteers"] = []
 
-if 'refetch_volunteers' not in st.session_state:
-    st.session_state['refetch_volunteers'] = True
+if "location" not in st.session_state:
+    st.session_state["location"] = []
 
-if 'volunteers' not in st.session_state:
-    st.session_state['volunteers'] = []
 
-if 'location' not in st.session_state:
-    st.session_state['location'] = []
+if "user_risk_category" not in st.session_state:
+    st.session_state["user_risk_category"] = None
 
-with st.container(height = 600, border=False):
+if "user_risk_score" not in st.session_state:
+    st.session_state["user_risk_score"] = None
+
+    
+with st.container(height = 1024, border=False):
+
 
     coll1, coll2 = st.columns([0.1,4])
     with coll1:
@@ -97,35 +117,7 @@ with st.container(height = 600, border=False):
             "height": 128,
             "anchorY": 128  # Adjust this based on the icon’s dimensions
         }
-        # data["icon_data"] = None
-        # for i in data.index:
-        #     data["icon_data"][i] = icon_data
-
-        # # Create the pydeck chart with IconLayer and tooltip
-        # st.pydeck_chart(
-        #     pdk.Deck(
-        #         map_style="mapbox://styles/mapbox/light-v9",
-        #         initial_view_state=pdk.ViewState(
-        #             latitude=user_lat,
-        #             longitude=user_lon,
-        #             zoom=14,
-        #             pitch=50
-        #         ),
-        #         layers=[
-        #             pdk.Layer(
-        #                 "IconLayer",
-        #                 data=data,
-        #                 get_icon="icon_data",
-        #                 get_size=4,
-        #                 size_scale=10,
-        #                 get_position=["longitude", "latitude"],
-        #             ),
-        #         ],
-        #         tooltip={"text": "{location_name}"},  # Tooltip to display the location name
-        #     )
-        # )
-
-        # m = folium.Map(location=[39.949610, -75.150282], zoom_start=16)
+       
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14, height=50)
 
         RADIUS = 2  # in miles
@@ -174,45 +166,7 @@ with st.container(height = 600, border=False):
 
     with col2:
         
-        # st.header("MAPAssist", align=right)
         st.markdown("<h3 style='text-align: left; color: white;'>Diya! Your virtual buddy..</h3>", unsafe_allow_html=True)
-        # st.image("assets\MAPAssist (3).png")
-
-
-        # # Custom CSS for chat layout using your provided styles
-        # st.markdown("""
-        # <style>
-        # .chat-row {
-        #     display: flex;
-        #     margin: 5px;
-        #     width: 100%;
-        # }
-        # .row-reverse {
-        #     flex-direction: row-reverse;
-        # }
-        # .chat-bubble {
-        #     font-family: "Source Sans Pro", sans-serif, "Segoe UI", "Roboto", sans-serif;
-        #     border: 1px solid transparent;
-        #     padding: 5px 10px;
-        #     margin: 0px 7px;
-        #     max-width: 70%;
-        # }
-        # .ai-bubble {
-        #     background: orange;
-        #     border-radius: 10px;
-        # }
-        # .human-bubble {
-        #     background: linear-gradient(135deg, rgb(0, 178, 255) 0%, rgb(0, 106, 255) 100%); 
-        #     color: white;
-        #     border-radius: 20px;
-        # }
-        # .chat-icon {
-        #     border-radius: 5px;
-        #     width: 32px;
-        #     height: 32px;
-        # }
-        # </style>
-        # """, unsafe_allow_html=True)
 
         #writing stream
         def generate_text(message):
@@ -233,17 +187,81 @@ with st.container(height = 600, border=False):
             })
 
             # Call your API or middleware
-            response = base_mw.common_middleware(st.session_state.contents, location)
+            response = None
 
-            new_text_gen = True
+            # we need to predict category
+            if st.session_state.user_risk_category is None:
+                # check if we can predict the category
+
+                all_user_prompts_concat = "\n".join(
+                    [
+                        mess["message"]
+                        for mess in st.session_state.contents
+                        if mess["author"] == "user"
+                    ]
+                )
+
+                can_classify = is_user_input_enough_to_classify(all_user_prompts_concat)
+
+                print(f"{can_classify=}")
+
+                if can_classify == "DONE":
+                    st.session_state.user_risk_category = classify_user_message(
+                        all_user_prompts_concat
+                    )
+                    print(f"{st.session_state.user_risk_category=}")
+                    st.session_state.user_risk_score = score_user_urgency(
+                        all_user_prompts_concat
+                    )
+                    print(f"{st.session_state.user_risk_score=}")
+
+                    # branch out
+                    if st.session_state.user_risk_score > 90:
+                        response = "I am sorry to hear that you are in distress. Please call 911 or the National"
+                    elif st.session_state.user_risk_score > 50:
+                        # community
+                        response = "I am sorry to hear that you are in distress. Let me locate some people nearby that can assist you. On your left, find details of nearby volunteers that might be able to assist you.\n\n"
+                        response += base_mw.common_middleware(
+                            st.session_state.contents, location
+                        )
+
+                        st.session_state.help_filters = HELP_IS_BUCKET_MAPPING[
+                            st.session_state.user_risk_category.name
+                        ]
+                        print(f"{st.session_state.help_filters=}")
+                        st.session_state.refetch_volunteers = True
+
+                    else:
+                        # education
+                        response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
+                        response += base_mw.common_middleware(
+                            st.session_state.contents, location
+                        )
+
+                elif can_classify == "Others":
+                    # edge case, ask for more information
+                    response = "I am sorry to hear that you are in distress. Can you provide me with more information?"
+                else:
+                    response = can_classify.title()
+            else:
+                response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
+                response += base_mw.common_middleware(
+                    st.session_state.contents, location
+                )
+
+                new_text_gen = True
 
             
+            new_text_gen = True
+
             # Add bot response to chat history
-            st.session_state.contents.append({
-                "author": "assistant",
-                "message": response,
-            })
-        
+            st.session_state.contents.append(
+                {
+                    "author": "assistant",
+                    "message": response,
+                }
+            )        
+            
 
         with st.container(height=450):
 
@@ -255,36 +273,7 @@ with st.container(height = 600, border=False):
                         new_text_gen = False
                     else:
                         st.write(message["message"])
-        # HTML for chat history
-        # chat_history = ""
-        # for each_message in st.session_state.contents:
-        #     if "You said:" in each_message:
-        #         # User message style
-        #         # chat_history += f"""
-        #         # <div class='chat-row row-reverse'>
-        #         #     <img class='chat-icon' src='https://img.icons8.com/?size=100&id=43460&format=png&color=000000'>
-        #         #     <div class='chat-bubble human-bubble'>{message}</div>
-        #         # </div>
-        #         # """
-        #         message = st.chat_message("user")
-        #         message.write(each_message)
-        #     else:
-        #         # Bot message style
-        #         # chat_history += f"""
-        #         # <div class='chat-row'>
-        #         #     <img class='chat-icon' src='https://img.icons8.com/ios-filled/50/000000/bot.png'>
-        #         #     <div class='chat-bubble ai-bubble'>{message}</div>
-        #         # </div>
-        #         # """
-        #         message = st.chat_message("assistant")
-        #         message.write(each_message)
-
-        # Display chat history container
-        # with st.container():
-            # st.markdown(chat_history, unsafe_allow_html=True)
 
 
 
-
-        # Chat input at the bottom
         st.chat_input("What would you like to know?", key='user_input', on_submit=on_submit_chat)
