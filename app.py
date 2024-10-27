@@ -40,10 +40,7 @@ def get_location_name(latitude, longitude):
     except GeocoderTimedOut:
         return "Location lookup timed out"
 
-
-# Initialize session state for chat messages
-if "contents" not in st.session_state:
-    st.session_state["contents"] = []
+new_text_gen = False
 
 if "help_filters" not in st.session_state:
     st.session_state["help_filters"] = []
@@ -55,7 +52,7 @@ if 'contents' not in st.session_state:
     st.session_state['contents'] = [
         {
                 "author": "assistant",
-                "message": "Hey I am Diya! How may I assist you?",
+                "message": "Hey I am Diya! Click on the location icon so that I can help you better. Now tell me, how may I assist you?",
         }
     ]
 
@@ -140,18 +137,18 @@ with st.container(height = 1024, border=False):
 
             if marker['Type'] == "Police":
                 marker_icon = folium.CustomIcon(
-                icon_image='assets\police-station.png',  # Path to your PNG icon
+                icon_image='assets/police-station.png',  # Path to your PNG icon
                 icon_size=(30, 30)) # Adjust size as needed
                 
             elif marker['Type'] == "Medical":
                 marker_icon = folium.CustomIcon(
-                icon_image='assets\healthcare.png',  # Path to your PNG icon
+                icon_image='assets/healthcare.png',  # Path to your PNG icon
                 icon_size=(30, 30)) # Adjust size as needed
                 
 
             elif marker['Type'] == "Supplies":
                 marker_icon = folium.CustomIcon(
-                icon_image='assets\grocery.png',  # Path to your PNG icon
+                icon_image='assets/grocery.png',  # Path to your PNG icon
                 icon_size=(30, 30))  # Adjust size as needed
                 
             elif marker['Gender'] == 'Female':
@@ -166,7 +163,7 @@ with st.container(height = 1024, border=False):
                 <b>{marker["Name"]}</b> <br>
                 <a href='tel:{marker["Phone"]}'> {str(marker["Phone"])} </a> <br>
                 <a href={address_link} target='_blank'>Directions </a> <br>
-                {marker["Gender"]} <br>
+                {marker["Gender"] if str(marker["Gender"]) != "nan" else "Organization" } <br>
                 Can help with {"  ".join(marker["Helps"].split(";"))}
                 """, parse_html=False), tooltip=marker["Name"], icon=marker_icon).add_to(m)
 
@@ -182,6 +179,7 @@ with st.container(height = 1024, border=False):
 
     # Chatbot in the second column (1/3 of the container)
 
+    
     with col2:
         
         st.markdown("<h3 style='text-align: left; color: white;'>Diya! Your virtual buddy..</h3>", unsafe_allow_html=True)
@@ -193,9 +191,10 @@ with st.container(height = 1024, border=False):
                 time.sleep(0.01)
             # Handle chat input
         
-        new_text_gen = False
 
         def on_submit_chat():
+            global new_text_gen
+            new_text_gen = True
             prompt = st.session_state.user_input
 
             # Add user message to chat history
@@ -235,7 +234,7 @@ with st.container(height = 1024, border=False):
 
                     # branch out
                     if st.session_state.user_risk_score > 90:
-                        response = "I am sorry to hear that you are in distress. Please call 911 or the National"
+                        response = "I am sorry to hear that you are in distress. Please call 911"
                     elif st.session_state.user_risk_score > 50:
                         # community
                         response = "I am sorry to hear that you are in distress. Let me locate some people nearby that can assist you. On your left, find details of nearby volunteers that might be able to assist you.\n\n"
@@ -266,11 +265,7 @@ with st.container(height = 1024, border=False):
                 response += base_mw.common_middleware(
                     st.session_state.contents, location
                 )
-
-                new_text_gen = True
-
             
-            new_text_gen = True
 
             # Add bot response to chat history
             st.session_state.contents.append(
@@ -278,7 +273,7 @@ with st.container(height = 1024, border=False):
                     "author": "assistant",
                     "message": response,
                 }
-            )        
+            )
             
 
         with st.container(height=450):
