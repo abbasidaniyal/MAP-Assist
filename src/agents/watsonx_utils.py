@@ -243,6 +243,7 @@ Instructions:
 
 If the user query contains sufficient information for categorization, return DONE.
 If more information is needed to accurately categorize the query, return a message requesting additional details.
+Do not return anything else.
 
 Stop after returning the response string.
 

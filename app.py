@@ -18,10 +18,17 @@ import numpy as np
 import folium
 from streamlit_folium import st_folium
 import pandas as pd
+from assets import *
 
 
 # Set page configuration
 st.set_page_config(layout="wide")
+col1, col2 = st.columns([0.1, 0.9])
+
+# Display the logo in the first column with specified width and height for a logo effect
+with col1:
+    st.image("assets/MAPAssist (3).png", width=200)
+
 
 
 # Function to get location name from coordinates
@@ -44,6 +51,14 @@ if "help_filters" not in st.session_state:
 if "refetch_volunteers" not in st.session_state:
     st.session_state["refetch_volunteers"] = True
 
+if 'contents' not in st.session_state:
+    st.session_state['contents'] = [
+        {
+                "author": "assistant",
+                "message": "Hey I am Diya! How may I assist you?",
+        }
+    ]
+
 if "volunteers" not in st.session_state:
     st.session_state["volunteers"] = []
 
@@ -57,309 +72,208 @@ if "user_risk_category" not in st.session_state:
 if "user_risk_score" not in st.session_state:
     st.session_state["user_risk_score"] = None
 
-st.header("Interactive Map")
-location = streamlit_geolocation()
+    
+with st.container(height = 1024, border=False):
 
-if st.session_state["location"] != location:
-    st.session_state["refetch_volunteers"] = True
 
-st.session_state["location"] = location
+    coll1, coll2 = st.columns([0.1,4])
+    with coll1:
+        # st.header("MAPAssist")
+        location = streamlit_geolocation()
+    
 
-# Create a two-column layout
-col1, col2 = st.columns([2, 1])
+    if st.session_state['location'] != location:
+        st.session_state['refetch_volunteers']  = True
 
-# Map in the first column (2/3 of the container)
-with col1:
-    if location and location.get("latitude") and location.get("longitude"):
-        user_lat = location["latitude"]
-        user_lon = location["longitude"]
-        location_name = get_location_name(user_lat, user_lon)
-        st.success(f"Location obtained: {location_name}")
-    else:
-        user_lat, user_lon = 29.6516, -82.3248  # Default to Gainesville, Florida
-        location_name = "Gainesville, Florida"
-        st.info(f"Using default location: {location_name}")
+    st.session_state['location'] = location
 
-    data = pd.DataFrame(
-        {
-            "latitude": [user_lat],
-            "longitude": [user_lon],
-            "location_name": [location_name],
+    # Create a two-column layout
+    col1, col2 = st.columns([2, 1])
+        # Map in the first column (2/3 of the container)
+    with col1:
+        if location and location.get('latitude') and location.get('longitude'):
+            user_lat = location['latitude']
+            user_lon = location['longitude']
+            location_name = get_location_name(user_lat, user_lon)
+            with coll2:
+                
+                st.success(f"Location obtained: {location_name}")
+        else:
+            user_lat, user_lon = 29.6516, -82.3248  # Default to Gainesville, Florida
+            location_name = "Gainesville, Florida"
+            with coll2:
+                st.info(f"Using default location: {location_name}")
+
+        data = pd.DataFrame({
+            'latitude': [user_lat],
+            'longitude': [user_lon],
+            'location_name': [location_name]
+        })
+        
+        # Define icon properties
+        icon_data = {
+            "url": "https://img.icons8.com/ios-filled/50/000000/marker.png",  # Change this URL to your preferred icon
+            "width": 128,
+            "height": 128,
+            "anchorY": 128  # Adjust this based on the icon’s dimensions
         }
-    )
+       
+        m = folium.Map(location=[user_lat, user_lon], zoom_start=14, height=50)
 
-    # Define icon properties
-    icon_data = {
-        "url": "https://img.icons8.com/ios-filled/50/000000/marker.png",  # Change this URL to your preferred icon
-        "width": 128,
-        "height": 128,
-        "anchorY": 128,  # Adjust this based on the icon’s dimensions
-    }
-    # data["icon_data"] = None
-    # for i in data.index:
-    #     data["icon_data"][i] = icon_data
+        RADIUS = 2  # in miles
+        CLOSE_RADIUS = 0.5  # in miles
 
-    # # Create the pydeck chart with IconLayer and tooltip
-    # st.pydeck_chart(
-    #     pdk.Deck(
-    #         map_style="mapbox://styles/mapbox/light-v9",
-    #         initial_view_state=pdk.ViewState(
-    #             latitude=user_lat,
-    #             longitude=user_lon,
-    #             zoom=14,
-    #             pitch=50
-    #         ),
-    #         layers=[
-    #             pdk.Layer(
-    #                 "IconLayer",
-    #                 data=data,
-    #                 get_icon="icon_data",
-    #                 get_size=4,
-    #                 size_scale=10,
-    #                 get_position=["longitude", "latitude"],
-    #             ),
-    #         ],
-    #         tooltip={"text": "{location_name}"},  # Tooltip to display the location name
-    #     )
-    # )
+        markers = None
+        if st.session_state.refetch_volunteers:
+            markers = base_mw.filter_nearby_people((user_lat, user_lon), max_distance=RADIUS, helps_filters=st.session_state.help_filters)
+            st.session_state.refetch_volunteers = False
+            st.session_state.volunteers = markers
+        else:
+            markers = st.session_state.volunteers
+        markers = markers[:10]
 
-    # m = folium.Map(location=[39.949610, -75.150282], zoom_start=16)
-    m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
+        volunteer_popup_icon =folium.Icon("blue")
+        for _, marker in markers.iterrows():
 
-    RADIUS = 2  # in miles
-    CLOSE_RADIUS = 0.5  # in miles
+            address_link = f"https://www.google.com/maps/dir/{user_lat},{user_lon}/{marker['Latitude']},{marker['Longitude']}/"
+            # address_link = f"http://maps.google.com/maps?z=14&t=m&q=loc:{marker['Latitude']}+{marker['Longitude']}"
 
-    markers = None
-    if st.session_state.refetch_volunteers:
-        markers = base_mw.filter_nearby_people(
-            (user_lat, user_lon),
-            max_distance=RADIUS,
-            helps_filters=st.session_state.help_filters,
-        )
-        st.session_state.refetch_volunteers = False
-        st.session_state.volunteers = markers
-    else:
-        markers = st.session_state.volunteers
-    markers = markers[:25]
+            if marker['Gender'] == 'Female':
+                marker_icon = folium.Icon('pink')
+            else:
+                marker_icon = folium.Icon('blue')
 
-    volunteer_popup_icon = folium.Icon("blue")
-    for _, marker in markers.iterrows():
+            folium.Marker(
+                location=[float(marker["Latitude"]), float(marker["Longitude"])], popup=folium.Popup(f"""
+                <b>{marker["Name"]}</b> <br>
+                <a href='tel:{marker["Phone"]}'> {str(marker["Phone"])} </a> <br>
+                <a href={address_link} target='_blank'>Directions </a> <br>
+                {marker["Gender"]} <br>
+                Can help with {"  ".join(marker["Helps"].split(";"))}
+                """, parse_html=False), tooltip=marker["Name"], icon=marker_icon).add_to(m)
 
-        address_link = f"https://www.google.com/maps/dir/{user_lat},{user_lon}/{marker['Latitude']},{marker['Longitude']}/"
-        # address_link = f"http://maps.google.com/maps?z=14&t=m&q=loc:{marker['Latitude']}+{marker['Longitude']}"
-
+        user_popup_icon =folium.Icon("red")
         folium.Marker(
-            location=[float(marker["Latitude"]), float(marker["Longitude"])],
-            popup=folium.Popup(
-                f"""
-<b>{marker["Name"]}</b> <br>
-<a href='tel:{marker["Phone"]}'> {str(marker["Phone"])} </a> <br>
-<a href='mailto:{marker["Email"]}'>{marker["Email"]} </a> <br>
-<a href={address_link} target='_blank'>{marker["Address"]} </a> <br>
-{marker["Gender"]} <br>
-Can help with {"  ".join(marker["Helps"].split(";"))}
-""",
-                parse_html=False,
-            ),
-            tooltip=marker["Name"],
-            icon=folium.Icon("blue"),
-        ).add_to(m)
+            location=[user_lat, user_lon], popup=folium.Popup(f"""You are here!""", parse_html=False), 
+            tooltip="Me", icon=user_popup_icon).add_to(m)
 
-    user_popup_icon = folium.Icon("red")
-    folium.Marker(
-        location=[user_lat, user_lon],
-        popup=folium.Popup(f"""You are here!""", parse_html=False),
-        tooltip="Me",
-        icon=user_popup_icon,
-    ).add_to(m)
+        folium.Circle([user_lat, user_lon], radius=RADIUS*1609, color="Orange").add_to(m)
+        folium.Circle([user_lat, user_lon], radius=CLOSE_RADIUS*1609, color="Green").add_to(m)
+            # call to render Folium map in Streamlit
+        st_data = st_folium(m, width=None)
 
-    folium.Circle([user_lat, user_lon], radius=RADIUS * 1609, color="Orange").add_to(m)
-    folium.Circle(
-        [user_lat, user_lon], radius=CLOSE_RADIUS * 1609, color="Green"
-    ).add_to(m)
-    # call to render Folium map in Streamlit
-    st_data = st_folium(m, width=None)
+    # Chatbot in the second column (1/3 of the container)
 
-# Chatbot in the second column (1/3 of the container)
+    with col2:
+        
+        st.markdown("<h3 style='text-align: left; color: white;'>Diya! Your virtual buddy..</h3>", unsafe_allow_html=True)
 
-with col2:
-    st.header("Chatbot")
+        #writing stream
+        def generate_text(message):
+            for char in message:
+                yield char
+                time.sleep(0.01)
+            # Handle chat input
+        
+        new_text_gen = False
 
-    # # Custom CSS for chat layout using your provided styles
-    # st.markdown("""
-    # <style>
-    # .chat-row {
-    #     display: flex;
-    #     margin: 5px;
-    #     width: 100%;
-    # }
-    # .row-reverse {
-    #     flex-direction: row-reverse;
-    # }
-    # .chat-bubble {
-    #     font-family: "Source Sans Pro", sans-serif, "Segoe UI", "Roboto", sans-serif;
-    #     border: 1px solid transparent;
-    #     padding: 5px 10px;
-    #     margin: 0px 7px;
-    #     max-width: 70%;
-    # }
-    # .ai-bubble {
-    #     background: orange;
-    #     border-radius: 10px;
-    # }
-    # .human-bubble {
-    #     background: linear-gradient(135deg, rgb(0, 178, 255) 0%, rgb(0, 106, 255) 100%);
-    #     color: white;
-    #     border-radius: 20px;
-    # }
-    # .chat-icon {
-    #     border-radius: 5px;
-    #     width: 32px;
-    #     height: 32px;
-    # }
-    # </style>
-    # """, unsafe_allow_html=True)
+        def on_submit_chat():
+            prompt = st.session_state.user_input
 
-    # writing stream
-    def generate_text(message):
-        for char in message:
-            yield char
-            time.sleep(0.01)
-        # Handle chat input
-
-    new_text_gen = False
-
-    def on_submit_chat():
-        prompt = st.session_state.user_input
-        st.session_state.contents.append(
-            {
+            # Add user message to chat history
+            st.session_state.contents.append({
                 "author": "user",
                 "message": prompt,
-            }
-        )
+            })
 
-        response = None
+            # Call your API or middleware
+            response = None
 
-        # we need to predict category
-        if st.session_state.user_risk_category is None:
-            # check if we can predict the category
+            # we need to predict category
+            if st.session_state.user_risk_category is None:
+                # check if we can predict the category
 
-            all_user_prompts_concat = "\n".join(
-                [
-                    mess["message"]
-                    for mess in st.session_state.contents
-                    if mess["author"] == "user"
-                ]
-            )
-
-            can_classify = is_user_input_enough_to_classify(all_user_prompts_concat)
-
-            print(f"{can_classify=}")
-
-            if can_classify == "DONE":
-                st.session_state.user_risk_category = classify_user_message(
-                    all_user_prompts_concat
-                )
-                print(f"{st.session_state.user_risk_category=}")
-                st.session_state.user_risk_score = score_user_urgency(
-                    all_user_prompts_concat
-                )
-                print(f"{st.session_state.user_risk_score=}")
-
-                # branch out
-                if st.session_state.user_risk_score > 90:
-                    response = "I am sorry to hear that you are in distress. Please call 911 or the National"
-                elif st.session_state.user_risk_score > 50:
-                    # community
-                    response = "I am sorry to hear that you are in distress. Let me locate some people nearby that can assist you. On your left, find details of nearby volunteers that might be able to assist you.\n\n"
-                    response += base_mw.common_middleware(
-                        st.session_state.contents, location
-                    )
-
-                    st.session_state.help_filters = HELP_IS_BUCKET_MAPPING[
-                        st.session_state.user_risk_category.name
+                all_user_prompts_concat = "\n".join(
+                    [
+                        mess["message"]
+                        for mess in st.session_state.contents
+                        if mess["author"] == "user"
                     ]
-                    print(f"{st.session_state.help_filters=}")
-                    st.session_state.refetch_volunteers = True
+                )
 
-                else:
-                    # education
-                    response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
-                    response += base_mw.common_middleware(
-                        st.session_state.contents, location
+                can_classify = is_user_input_enough_to_classify(all_user_prompts_concat)
+
+                print(f"{can_classify=}")
+
+                if can_classify == "DONE":
+                    st.session_state.user_risk_category = classify_user_message(
+                        all_user_prompts_concat
                     )
+                    print(f"{st.session_state.user_risk_category=}")
+                    st.session_state.user_risk_score = score_user_urgency(
+                        all_user_prompts_concat
+                    )
+                    print(f"{st.session_state.user_risk_score=}")
 
-            elif can_classify == "Others":
-                # edge case, ask for more information
-                response = "I am sorry to hear that you are in distress. Can you provide me with more information?"
-            else:
-                response = can_classify.title()
-        else:
-            response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
-            response += base_mw.common_middleware(
-                st.session_state.contents, location
-            )
+                    # branch out
+                    if st.session_state.user_risk_score > 90:
+                        response = "I am sorry to hear that you are in distress. Please call 911 or the National"
+                    elif st.session_state.user_risk_score > 50:
+                        # community
+                        response = "I am sorry to hear that you are in distress. Let me locate some people nearby that can assist you. On your left, find details of nearby volunteers that might be able to assist you.\n\n"
+                        response += base_mw.common_middleware(
+                            st.session_state.contents, location
+                        )
 
-        ## we have to
+                        st.session_state.help_filters = HELP_IS_BUCKET_MAPPING[
+                            st.session_state.user_risk_category.name
+                        ]
+                        print(f"{st.session_state.help_filters=}")
+                        st.session_state.refetch_volunteers = True
 
-        # Add user message to chat history
+                    else:
+                        # education
+                        response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
+                        response += base_mw.common_middleware(
+                            st.session_state.contents, location
+                        )
 
-        # Call your API or middleware
-        # response = base_mw.common_middleware(st.session_state.contents, location)
-
-        new_text_gen = True
-
-        # Add bot response to chat history
-        st.session_state.contents.append(
-            {
-                "author": "assistant",
-                "message": response,
-            }
-        )
-
-    with st.container(height=450):
-
-        # Display chat messages
-        for i, message in enumerate(st.session_state.contents):
-            with st.chat_message(message["author"]):
-                if (
-                    message["author"] == "assistant"
-                    and i >= len(st.session_state.contents) - 2
-                    and new_text_gen
-                ):
-                    st.write_stream(generate_text(message["message"]))
-                    new_text_gen = False
+                elif can_classify == "Others":
+                    # edge case, ask for more information
+                    response = "I am sorry to hear that you are in distress. Can you provide me with more information?"
                 else:
-                    st.write(message["message"])
-    # HTML for chat history
-    # chat_history = ""
-    # for each_message in st.session_state.contents:
-    #     if "You said:" in each_message:
-    #         # User message style
-    #         # chat_history += f"""
-    #         # <div class='chat-row row-reverse'>
-    #         #     <img class='chat-icon' src='https://img.icons8.com/?size=100&id=43460&format=png&color=000000'>
-    #         #     <div class='chat-bubble human-bubble'>{message}</div>
-    #         # </div>
-    #         # """
-    #         message = st.chat_message("user")
-    #         message.write(each_message)
-    #     else:
-    #         # Bot message style
-    #         # chat_history += f"""
-    #         # <div class='chat-row'>
-    #         #     <img class='chat-icon' src='https://img.icons8.com/ios-filled/50/000000/bot.png'>
-    #         #     <div class='chat-bubble ai-bubble'>{message}</div>
-    #         # </div>
-    #         # """
-    #         message = st.chat_message("assistant")
-    #         message.write(each_message)
+                    response = can_classify.title()
+            else:
+                response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
+                response += base_mw.common_middleware(
+                    st.session_state.contents, location
+                )
 
-    # Display chat history container
-    # with st.container():
-    # st.markdown(chat_history, unsafe_allow_html=True)
+                new_text_gen = True
 
-    # Chat input at the bottom
-    st.chat_input(
-        "What would you like to know?", key="user_input", on_submit=on_submit_chat
-    )
+            
+            new_text_gen = True
+
+            # Add bot response to chat history
+            st.session_state.contents.append(
+                {
+                    "author": "assistant",
+                    "message": response,
+                }
+            )        
+            
+
+        with st.container(height=450):
+
+            # Display chat messages
+            for i, message in enumerate(st.session_state.contents):
+                with st.chat_message(message["author"]):
+                    if message["author"] == "assistant" and i >= len(st.session_state.contents)-2 and new_text_gen:
+                        st.write_stream(generate_text(message['message']))
+                        new_text_gen = False
+                    else:
+                        st.write(message["message"])
+
+
+
+        st.chat_input("What would you like to know?", key='user_input', on_submit=on_submit_chat)
