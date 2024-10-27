@@ -1,0 +1,29 @@
+During a natural disaster, you will categorize user queries into the following categories:
+
+Health
+Supplies
+Shelters
+Mental Distress
+Others
+If additional information is needed to make a classification, feel free to ask clarifying questions. If you're uncertain about the appropriate category, classify the query as "Others".
+
+Stop after returning the correct category.
+
+Input: I am looking for a place to stay
+Output: Shelter
+
+Input: I am hurt
+Output:  Health
+
+Input: My house is on file
+Output: Shelter
+
+Input: I have run out of food
+Output:  Supplies
+
+
+Input: Running out of water
+Output: Supplies
+
+Input: I am panicing
+Output: Mental Distress
