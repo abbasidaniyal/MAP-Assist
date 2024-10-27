@@ -2,12 +2,15 @@ import pandas as pd
 import random
 import numpy as np
 from faker import Faker
+import sys
 
 # Instantiate Faker for random data generation
 fake = Faker()
 
+# data_type = sys.argv[1]
+
 # Define columns and example helps
-columns = ["Name", "Phone", "Email", "Address", "Latitude", "Longitude", "Gender", "DOB", "Helps"]
+columns = ["Name", "Phone", "Email", "Address", "Latitude", "Longitude", "Gender", "DOB", "Helps", "Type"]
 helps_options = [
     "Awareness", "Training", "First Aid", "Evacuation", "Supplies", "Drills", "Sandbags", "Contacts", "Hazard Map",
     "Alerts", "Translation", "Collection", "Shelter", "Recruitment", "Food", "Water", "Medical", "Support",
@@ -21,6 +24,12 @@ helps_options = [
     "Insurance", "Remapping", "Health Kits", "Sanitation", "Crowd Control", "Temporary Schools", "Life Skills"
 ]
 
+company_types = [
+    "Police", "Supplies", "Supplies", "Medical", "Supplies", "Supplies", "Supplies", "Supplies",
+    "Supplies", "Supplies", "Supplies", "Supplies", "Supplies", "Police", "Supplies", "Supplies", "Supplies",
+    "Medical", "Medical"
+]
+
 # Gainesville Florida latitude and longitude bounds
 latitude_min, latitude_max = 29.62, 29.68
 longitude_min, longitude_max = -82.40, -82.30
@@ -29,11 +38,11 @@ longitude_min, longitude_max = -82.40, -82.30
 gender_choices = ["Male", "Female", "Other"]
 
 # Generate 2000+ entries
-num_entries = 2000
+num_entries = 4000
 data = []
 
-for _ in range(num_entries):
-    name = fake.name()
+for entry in range(num_entries):
+    name = fake.name() if entry <= 2000 else fake.company()
     # Generate phone in (XXX) XXX-XXXX format
     phone = fake.phone_number().replace(" ", "").replace("-", "")
     email = fake.email()
@@ -46,11 +55,14 @@ for _ in range(num_entries):
     dob = fake.date_of_birth(minimum_age=24, maximum_age=75).isoformat()
     # Random 3-7 helps
     helps = ",".join(random.sample(helps_options, random.randint(3, 7)))  
-    
-    data.append([name, phone, email, address, latitude, longitude, gender, dob, helps])
+
+    if entry <= 2000:
+        data.append([name, phone, email, address, latitude, longitude, gender, dob, helps, "Individual"])
+    else:
+        data.append([name, phone, email, address, latitude, longitude, '', '', helps, random.choice(company_types)])
 
 # Create DataFrame and save to CSV
 df = pd.DataFrame(data, columns=columns)
 df.to_csv("volunteers_gainesville.csv", index=False)
 
-print("Data generation complete. Saved to 'volunteers_gainesville.csv'.")
+print("Data generation complete.")
