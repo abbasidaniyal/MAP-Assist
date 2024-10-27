@@ -218,7 +218,8 @@ with st.container(height = 1024, border=False):
                     ]
                 )
 
-                can_classify = is_user_input_enough_to_classify(all_user_prompts_concat)
+                # can_classify = is_user_input_enough_to_classify(all_user_prompts_concat)
+                can_classify = "DONE" # skipping the classification for now since it does not perform well
 
                 print(f"{can_classify=}")
 
