@@ -38,11 +38,11 @@ longitude_min, longitude_max = -82.40, -82.30
 gender_choices = ["Male", "Female", "Other"]
 
 # Generate 2000+ entries
-num_entries = 4000
+num_entries = 150
 data = []
 
 for entry in range(num_entries):
-    name = fake.name() if entry <= 2000 else fake.company()
+    name = fake.name() if entry <= 100 else fake.company()
     # Generate phone in (XXX) XXX-XXXX format
     phone = fake.phone_number().replace(" ", "").replace("-", "")
     email = fake.email()
@@ -56,7 +56,7 @@ for entry in range(num_entries):
     # Random 3-7 helps
     helps = ",".join(random.sample(helps_options, random.randint(3, 7)))  
 
-    if entry <= 2000:
+    if entry <= 100:
         data.append([name, phone, email, address, latitude, longitude, gender, dob, helps, "Individual"])
     else:
         data.append([name, phone, email, address, latitude, longitude, '', '', helps, random.choice(company_types)])
