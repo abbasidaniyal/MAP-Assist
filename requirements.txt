@@ -7,3 +7,6 @@ langchain_ibm==0.1.12
 langchain==0.2.16
 pydantic>=1.10.0
 requests==2.32.2
+streamlit_geolocation==0.0.10
+geopy==2.4.1
+folium==0.18.0

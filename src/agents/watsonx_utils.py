@@ -21,7 +21,7 @@ def _get_access_token():
     return response.json().get("access_token")
 
 
-def get_education_content_help(query_string, history):
+def get_education_content_help(history):
     access_token = _get_access_token()
     bearer_token = f"Bearer {access_token}"
     url = f"{WATSONX_ML_BASE_URL}/ml/v1/text/generation?version=2023-05-29"
@@ -30,13 +30,10 @@ def get_education_content_help(query_string, history):
     if not history:
         history = []
 
-    history.append(query_string)
-
     final_message = ""
-    for i, mess in enumerate(history):
-        flag = "<|user|>" if i % 2 == 0 else "<|assistant|>"
+    for mess in history['context']:
 
-        final_message += f"{flag} {mess}\n"
+        final_message += f"<|{mess['author']}|> {mess['message']}\n"
 
     payload = json.dumps(
         {

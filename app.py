@@ -30,8 +30,25 @@ def get_location_name(latitude, longitude):
 if 'contents' not in st.session_state:
     st.session_state['contents'] = []
 
+if 'help_filters' not in st.session_state:
+    st.session_state['help_filters'] = []
+
+if 'refetch_volunteers' not in st.session_state:
+    st.session_state['refetch_volunteers'] = True
+
+if 'volunteers' not in st.session_state:
+    st.session_state['volunteers'] = []
+
+if 'location' not in st.session_state:
+    st.session_state['location'] = []
+
 st.header("Interactive Map")
 location = streamlit_geolocation()
+
+if st.session_state['location'] != location:
+    st.session_state['refetch_volunteers']  = True
+
+st.session_state['location'] = location
 
 # Create a two-column layout
 col1, col2 = st.columns([2, 1])
@@ -89,13 +106,46 @@ with col1:
     #     )
     # )
 
-    m = folium.Map(location=[39.949610, -75.150282], zoom_start=16)
-    folium.Marker(
-        [39.949610, -75.150282], popup="Liberty Bell", tooltip="Liberty Bell"
-    ).add_to(m)
+    # m = folium.Map(location=[39.949610, -75.150282], zoom_start=16)
+    m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
-    # call to render Folium map in Streamlit
-    st_data = st_folium(m, width=725)
+    RADIUS = 2  # in miles
+    CLOSE_RADIUS = 0.5  # in miles
+
+    markers = None
+    if st.session_state.refetch_volunteers:
+        markers = base_mw.filter_nearby_people((user_lat, user_lon), max_distance=RADIUS, helps_filters=st.session_state.help_filters)
+        st.session_state.refetch_volunteers = False
+        st.session_state.volunteers = markers
+    else:
+        markers = st.session_state.volunteers
+    markers = markers[:10]
+
+    volunteer_popup_icon =folium.Icon("blue")
+    for _, marker in markers.iterrows():
+
+        address_link = f"https://www.google.com/maps/dir/{user_lat},{user_lon}/{marker['Latitude']},{marker['Longitude']}/"
+        # address_link = f"http://maps.google.com/maps?z=14&t=m&q=loc:{marker['Latitude']}+{marker['Longitude']}"
+
+        folium.Marker(
+            location=[float(marker["Latitude"]), float(marker["Longitude"])], popup=folium.Popup(f"""
+<b>{marker["Name"]}</b> <br>
+<a href='tel:{marker["Phone"]}'> {str(marker["Phone"])} </a> <br>
+<a href='mailto:{marker["Email"]}'>{marker["Email"]} </a> <br>
+<a href={address_link} target='_blank'>{marker["Address"]} </a> <br>
+{marker["Gender"]} <br>
+Can help with {"  ".join(marker["Helps"].split(";"))}
+""", parse_html=False), tooltip=marker["Name"], icon=folium.Icon("blue")).add_to(m)
+
+    user_popup_icon =folium.Icon("red")
+    folium.Marker(
+        location=[user_lat, user_lon], popup=folium.Popup(f"""You are here!""", parse_html=False), 
+        tooltip="Me", icon=user_popup_icon).add_to(m)
+
+    folium.Circle([user_lat, user_lon], radius=RADIUS*1609, color="Orange").add_to(m)
+    folium.Circle([user_lat, user_lon], radius=CLOSE_RADIUS*1609, color="Green").add_to(m)
+        # call to render Folium map in Streamlit
+    st_data = st_folium(m, width=None)
 
 # Chatbot in the second column (1/3 of the container)
 
@@ -141,8 +191,11 @@ with col2:
     def generate_text(message):
         for char in message:
             yield char
-            time.sleep(0.1)
+            time.sleep(0.01)
         # Handle chat input
+    
+    new_text_gen = False
+
     def on_submit_chat():
         prompt = st.session_state.user_input
 
@@ -153,12 +206,10 @@ with col2:
         })
 
         # Call your API or middleware
-        api_res = base_mw.common_middleware(prompt, [msg['message'] for msg in st.session_state.contents], location)
+        response = base_mw.common_middleware(st.session_state.contents, location)
 
-        if api_res['status'] == "success":
-            response = str(api_res['res'])
-        else:
-            response = "Something went wrong"
+        new_text_gen = True
+
         
         # Add bot response to chat history
         st.session_state.contents.append({
@@ -172,8 +223,9 @@ with col2:
         # Display chat messages
         for i, message in enumerate(st.session_state.contents):
             with st.chat_message(message["author"]):
-                if message["author"] == "assistant" and i >= len(st.session_state.contents)-2:
+                if message["author"] == "assistant" and i >= len(st.session_state.contents)-2 and new_text_gen:
                     st.write_stream(generate_text(message['message']))
+                    new_text_gen = False
                 else:
                     st.write(message["message"])
     # HTML for chat history
