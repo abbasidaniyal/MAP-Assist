@@ -17,10 +17,13 @@ from assets import *
 
 # Set page configuration
 st.set_page_config(layout="wide")
+col1, col2 = st.columns([0.1, 0.9])
 
-with st.sidebar:
-    st.logo('AidMe\assets\MAPAssist__2_-removebg-preview.png')
-    st.write("This code will be printed to the sidebar.")
+# Display the logo in the first column with specified width and height for a logo effect
+with col1:
+    st.image("assets/MAPAssist (3).png", width=200)
+
+
 # Function to get location name from coordinates
 def get_location_name(latitude, longitude):
     geolocator = Nominatim(user_agent="my_streamlit_app")
@@ -32,7 +35,12 @@ def get_location_name(latitude, longitude):
 
 # Initialize session state for chat messages
 if 'contents' not in st.session_state:
-    st.session_state['contents'] = []
+    st.session_state['contents'] = [
+        {
+                "author": "assistant",
+                "message": "Hey I am Diya! How may I assist you?",
+        }
+    ]
 
 if 'help_filters' not in st.session_state:
     st.session_state['help_filters'] = []
@@ -48,8 +56,11 @@ if 'location' not in st.session_state:
 
 with st.container(height = 600, border=False):
 
-    # st.header("MAPAssist")
-    location = streamlit_geolocation()
+    coll1, coll2 = st.columns([0.1,4])
+    with coll1:
+        # st.header("MAPAssist")
+        location = streamlit_geolocation()
+    
 
     if st.session_state['location'] != location:
         st.session_state['refetch_volunteers']  = True
@@ -64,11 +75,14 @@ with st.container(height = 600, border=False):
             user_lat = location['latitude']
             user_lon = location['longitude']
             location_name = get_location_name(user_lat, user_lon)
-            st.success(f"Location obtained: {location_name}")
+            with coll2:
+                
+                st.success(f"Location obtained: {location_name}")
         else:
             user_lat, user_lon = 29.6516, -82.3248  # Default to Gainesville, Florida
             location_name = "Gainesville, Florida"
-            st.info(f"Using default location: {location_name}")
+            with coll2:
+                st.info(f"Using default location: {location_name}")
 
         data = pd.DataFrame({
             'latitude': [user_lat],
@@ -161,7 +175,9 @@ with st.container(height = 600, border=False):
     with col2:
         
         # st.header("MAPAssist", align=right)
-        st.markdown("<h1 style='text-align: right; color: white;'>MAPAssist</h1>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: left; color: white;'>Diya! Your virtual buddy..</h3>", unsafe_allow_html=True)
+        # st.image("assets\MAPAssist (3).png")
+
 
         # # Custom CSS for chat layout using your provided styles
         # st.markdown("""
