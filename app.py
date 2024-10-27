@@ -235,10 +235,10 @@ with st.container(height = 1024, border=False):
 
                     # branch out
                     if st.session_state.user_risk_score > 90:
-                        response = "I am sorry to hear that you are in distress. Please call 911"
+                        response = "I’m sorry to hear you’re in distress. Unfortunately, I’m not able to assist with urgent situations. Please reach out to emergency services like 911 if you need immediate help."
                     elif st.session_state.user_risk_score > 50:
                         # community
-                        response = "I am sorry to hear that you are in distress. Let me locate some people nearby that can assist you. On your left, find details of nearby volunteers that might be able to assist you.\n\n"
+                        response = "I’m sorry to hear that you’re in distress. Let me help you find support nearby. On your left, you’ll see details of local volunteers who may be able to assist\n\n"
                         response += base_mw.common_middleware(
                             st.session_state.contents, location
                         )
@@ -251,7 +251,7 @@ with st.container(height = 1024, border=False):
 
                     else:
                         # education
-                        response = "I am sorry to hear that you are in distress. Let me get some help for you.\n\n"
+                        response = "I’m sorry to hear that you’re in distress. Let me get some help for you.\n\n"
                         response += base_mw.common_middleware(
                             st.session_state.contents, location
                         )
