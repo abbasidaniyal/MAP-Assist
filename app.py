@@ -130,7 +130,7 @@ with st.container(height = 1024, border=False):
             st.session_state.volunteers = markers
         else:
             markers = st.session_state.volunteers
-        markers = markers[:10]
+        markers = markers[:100]
 
         volunteer_popup_icon =folium.Icon("blue")
         for _, marker in markers.iterrows():
