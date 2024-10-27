@@ -2,12 +2,18 @@ import pandas as pd
 import random
 import numpy as np
 from faker import Faker
+import sys
 
 # Instantiate Faker for random data generation
 fake = Faker()
 
+data_type = sys.argv[1]
+
 # Define columns and example helps
-columns = ["Name", "Phone", "Email", "Address", "Latitude", "Longitude", "Gender", "DOB", "Helps"]
+if data_type == 'p':
+    columns = ["Name", "Phone", "Email", "Address", "Latitude", "Longitude", "Gender", "DOB", "Helps"]
+else:
+    columns = ["Name", "Phone", "Email", "Address", "Latitude", "Longitude", "Helps"]
 helps_options = [
     "Awareness", "Training", "First Aid", "Evacuation", "Supplies", "Drills", "Sandbags", "Contacts", "Hazard Map",
     "Alerts", "Translation", "Collection", "Shelter", "Recruitment", "Food", "Water", "Medical", "Support",
@@ -33,7 +39,7 @@ num_entries = 2000
 data = []
 
 for _ in range(num_entries):
-    name = fake.name()
+    name = fake.name() if data_type == 'p' else fake.company()
     # Generate phone in (XXX) XXX-XXXX format
     phone = fake.phone_number().replace(" ", "").replace("-", "")
     email = fake.email()
@@ -46,11 +52,17 @@ for _ in range(num_entries):
     dob = fake.date_of_birth(minimum_age=24, maximum_age=75).isoformat()
     # Random 3-7 helps
     helps = ",".join(random.sample(helps_options, random.randint(3, 7)))  
-    
-    data.append([name, phone, email, address, latitude, longitude, gender, dob, helps])
+
+    if data_type == 'p':
+        data.append([name, phone, email, address, latitude, longitude, gender, dob, helps])
+    else:
+        data.append([name, phone, email, address, latitude, longitude, helps])
 
 # Create DataFrame and save to CSV
 df = pd.DataFrame(data, columns=columns)
-df.to_csv("volunteers_gainesville.csv", index=False)
+if data_type == 'p':
+    df.to_csv("volunteers_gainesville.csv", index=False)
+else:
+    df.to_csv("company_volunteers_gainesville.csv", index=False)
 
-print("Data generation complete. Saved to 'volunteers_gainesville.csv'.")
+print("Data generation complete.")
