@@ -3,7 +3,7 @@ Demo: https://youtu.be/TWpHDfd3G_8
 
 Presentation: https://youtu.be/MEvwDrE6cGs?si=S1QjL26RDE_Y5YCV
 
-Use it here: https://mapassist.streamlit.app/
+Use it here: https://map-assist.streamlit.app/
 
 A watsonx AI based web application to help people in distress during a disaster.
 
